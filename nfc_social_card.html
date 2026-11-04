@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Digital Card | Quick Connect</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'spin-slow': 'spin 12s linear infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-10px) rotate(1deg)' },
+                        },
+                        glow: {
+                            '0%': { filter: 'drop-shadow(0 0 15px rgba(168, 85, 247, 0.4))' },
+                            '100%': { filter: 'drop-shadow(0 0 30px rgba(236, 72, 153, 0.8))' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Glassmorphism Styles */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        .glass-card-light {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        /* Dynamic Animated Background Mesh Gradient */
+        .bg-mesh-cyberpunk {
+            background-color: #0d0914;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(280,100%,25%,0.6) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(330,100%,30%,0.6) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(200,100%,25%,0.6) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(260,100%,20%,0.6) 0px, transparent 50%);
+        }
+
+        .bg-mesh-sunset {
+            background-color: #1a0b16;
+            background-image: 
+                radial-gradient(at 10% 10%, hsla(15,100%,35%,0.6) 0px, transparent 50%),
+                radial-gradient(at 90% 10%, hsla(340,100%,35%,0.6) 0px, transparent 50%),
+                radial-gradient(at 50% 90%, hsla(270,100%,30%,0.6) 0px, transparent 50%);
+        }
+
+        .bg-mesh-emerald {
+            background-color: #061814;
+            background-image: 
+                radial-gradient(at 0% 20%, hsla(160,100%,20%,0.7) 0px, transparent 50%),
+                radial-gradient(at 100% 80%, hsla(190,100%,25%,0.6) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, hsla(140,80%,15%,0.5) 0px, transparent 50%);
+        }
+
+        /* 3D Card Hover Effect */
+        .tilt-card {
+            transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+            transform-style: preserve-3d;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+        }
+
+        /* Ripple Effect */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple-animation 0.6s linear;
+            background-color: rgba(255, 255, 255, 0.35);
+            pointer-events: none;
+        }
+        @keyframes ripple-animation {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-white selection:bg-pink-500 selection:text-white min-h-screen relative overflow-x-hidden transition-colors duration-500 bg-mesh-cyberpunk" id="bodyTheme">
+
+    <!-- Background Canvas for Interactive Particles -->
+    <canvas id="particleCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- Theme Switcher Floating Bar -->
+    <header class="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
+        <div class="glass-card rounded-full px-4 py-2 flex items-center space-x-3 text-xs sm:text-sm border border-white/20 shadow-lg">
+            <span class="text-gray-300 font-medium hidden sm:inline"><i class="fa-solid fa-palette mr-1 text-pink-400"></i> Theme:</span>
+            <button onclick="setTheme('cyberpunk')" class="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 border-2 border-white/40 hover:scale-110 transition-transform" title="Cyberpunk"></button>
+            <button onclick="setTheme('sunset')" class="w-6 h-6 rounded-full bg-gradient-to-tr from-orange-500 to-rose-600 border-2 border-white/40 hover:scale-110 transition-transform" title="Sunset"></button>
+            <button onclick="setTheme('emerald')" class="w-6 h-6 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-700 border-2 border-white/40 hover:scale-110 transition-transform" title="Emerald"></button>
+            <div class="h-4 w-[1px] bg-white/20"></div>
+            <button id="sparkleToggle" onclick="toggleParticles()" class="text-gray-300 hover:text-white transition-colors" title="Toggle Floating Particles">
+                <i class="fa-solid fa-sparkles text-yellow-400" id="sparkleIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="relative z-10 max-w-md mx-auto px-4 pt-20 pb-12 flex flex-col items-center">
+
+        <!-- NFC Badge Indicator -->
+        <div class="mb-4 inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-purple-200 animate-pulse-slow shadow-sm">
+            <i class="fa-solid fa-wifi rotate-90 text-pink-400"></i>
+            <span>NFC Card Scan Verified</span>
+        </div>
+
+        <!-- Profile Section -->
+        <div class="w-full text-center flex flex-col items-center mb-6">
+            <!-- Profile Avatar with Glow Ring -->
+            <div class="relative mb-4 group cursor-pointer" onclick="triggerConfetti()">
+                <div class="absolute -inset-1 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 blur-md opacity-80 group-hover:opacity-100 transition duration-500 animate-spin-slow"></div>
+                <div class="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-white/60 p-1 bg-black/40 shadow-2xl">
+                    <img src="picture.png" alt="Profile Picture" class="w-full h-full object-cover rounded-full transition-transform duration-500 group-hover:scale-110">
+                </div>
+                <div class="absolute bottom-1 right-1 bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-md" title="Verified Creator">
+                    <i class="fa-solid fa-check text-xs"></i>
+                </div>
+            </div>
+
+            <!-- Name and Title -->
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center justify-center gap-2">
+                Ashik Rubayet Prince Mamun
+                <span class="inline-block text-xl animate-bounce">✨</span>
+            </h1>
+            <p class="text-sm text-purple-200 font-medium mt-1">Creative Technologist & UI/UX Designer</p>
+            <p class="text-xs text-gray-300 max-w-xs mt-2 leading-relaxed opacity-90">
+                Building high-speed digital experiences. Passionate about web3, 3D interactive design, and mobile UX.
+            </p>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="w-full grid grid-cols-3 gap-2 mb-6">
+            <button onclick="downloadVCard()" class="glass-card hover:bg-white/20 text-white font-medium py-2.5 px-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-200 hover:scale-105 active:scale-95 text-xs">
+                <i class="fa-solid fa-user-plus text-base text-pink-400"></i>
+                <span>Save Contact</span>
+            </button>
+            <button onclick="openNfcModal()" class="glass-card hover:bg-white/20 text-white font-medium py-2.5 px-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-200 hover:scale-105 active:scale-95 text-xs">
+                <i class="fa-solid fa-nfc-symbol text-base text-cyan-400"></i>
+                <span>NFC Share</span>
+            </button>
+            <button onclick="copyProfileLink()" class="glass-card hover:bg-white/20 text-white font-medium py-2.5 px-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-200 hover:scale-105 active:scale-95 text-xs">
+                <i class="fa-solid fa-share-nodes text-base text-purple-400"></i>
+                <span>Copy Link</span>
+            </button>
+        </div>
+
+        <!-- Links Container -->
+        <div class="w-full space-y-3.5" id="linksContainer">
+            
+            <!-- Instagram -->
+            <a href="https://instagram.com" target="_blank" class="tilt-card glass-card rounded-2xl p-4 flex items-center justify-between group hover:border-pink-500/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(236,72,153,0.3)] relative overflow-hidden">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center text-white text-xl shadow-md group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-instagram"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-white group-hover:text-pink-300 transition-colors">Instagram</h3>
+                        <p class="text-xs text-gray-400">@alexmorgan_design</p>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </div>
+            </a>
+
+            <!-- Portfolio Website -->
+            <a href="https://github.com" target="_blank" class="tilt-card glass-card rounded-2xl p-4 flex items-center justify-between group hover:border-cyan-400/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)] relative overflow-hidden">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xl shadow-md group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-globe"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-white group-hover:text-cyan-300 transition-colors">Interactive Portfolio</h3>
+                        <p class="text-xs text-gray-400">alexmorgan.dev</p>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </div>
+            </a>
+
+            <!-- X / Twitter -->
+            <a href="https://twitter.com" target="_blank" class="tilt-card glass-card rounded-2xl p-4 flex items-center justify-between group hover:border-gray-400/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] relative overflow-hidden">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-black border border-white/20 flex items-center justify-center text-white text-lg shadow-md group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-x-twitter"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-white group-hover:text-gray-300 transition-colors">X (Twitter)</h3>
+                        <p class="text-xs text-gray-400">Tech thoughts & micro-tips</p>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </div>
+            </a>
+
+            <!-- LinkedIn -->
+            <a href="https://linkedin.com" target="_blank" class="tilt-card glass-card rounded-2xl p-4 flex items-center justify-between group hover:border-blue-500/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] relative overflow-hidden">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xl shadow-md group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-linkedin-in"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-white group-hover:text-blue-300 transition-colors">LinkedIn</h3>
+                        <p class="text-xs text-gray-400">Professional network & resume</p>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </div>
+            </a>
+
+            <!-- YouTube -->
+            <a href="https://youtube.com" target="_blank" class="tilt-card glass-card rounded-2xl p-4 flex items-center justify-between group hover:border-red-500/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] relative overflow-hidden">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center text-white text-xl shadow-md group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-youtube"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-white group-hover:text-red-300 transition-colors">YouTube</h3>
+                        <p class="text-xs text-gray-400">Design tutorials & vlogs</p>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </div>
+            </a>
+
+            <!-- Spotify Playlist -->
+            <a href="https://spotify.com" target="_blank" class="tilt-card glass-card rounded-2xl p-4 flex items-center justify-between group hover:border-green-500/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,197,94,0.3)] relative overflow-hidden">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-green-500 flex items-center justify-center text-black text-xl font-bold shadow-md group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-spotify"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-white group-hover:text-green-300 transition-colors">Coding Playlist</h3>
+                        <p class="text-xs text-gray-400">Synthwave & Lo-Fi Vibes</p>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-8 text-center text-xs text-gray-400 flex flex-col items-center gap-1">
+            <p class="flex items-center gap-1">
+                Powered by <span class="text-pink-400 font-semibold">NFC Tap Tech</span>
+            </p>
+            <p class="opacity-60">Instant load • 0.2s NFC response</p>
+        </footer>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-card px-5 py-3 rounded-full text-xs font-semibold text-white shadow-2xl flex items-center space-x-2 border border-white/30 pointer-events-none">
+        <i class="fa-solid fa-circle-check text-green-400 text-sm"></i>
+        <span id="toastMessage">Action completed!</span>
+    </div>
+
+    <!-- NFC Simulation Modal -->
+    <div id="nfcModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-sm w-full rounded-3xl p-6 text-center relative border border-white/20">
+            <button onclick="closeNfcModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center text-2xl border border-pink-500/40 animate-pulse">
+                <i class="fa-solid fa-wifi rotate-90"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">NFC Card Sharing</h3>
+            <p class="text-xs text-gray-300 mb-4">Tap another phone against your NFC card to instantly share this landing page URL!</p>
+            
+            <div class="bg-black/40 p-3 rounded-xl border border-white/10 text-xs font-mono text-pink-300 break-all mb-4" id="cardUrlDisplay">
+                https://alexmorgan.dev/nfc
+            </div>
+
+            <button onclick="copyProfileLink(); closeNfcModal();" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg">
+                Copy Link to NFC Card Writer
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Interactions & Animations -->
+    <script>
+        // ----------------------------------------------------
+        // 1. Toast Notification System
+        // ----------------------------------------------------
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toastMessage.textContent = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // ----------------------------------------------------
+        // 2. vCard (.vcf) Generator for Save Contact
+        // ----------------------------------------------------
+        function downloadVCard() {
+            const vCardData = `BEGIN:VCARD
+VERSION:3.0
+FN:Prince Mamun
+TITLE:Racer
+TEL;TYPE=CELL:+880169696767
+EMAIL:princesins696967@gmail.com
+URL:https://princemamun.com
+NOTE:NFC Card Contact
+END:VCARD`;
+
+            const blob = new Blob([vCardData], { type: 'text/vcard;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'Prince.vcf');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("Contact card downloaded!");
+        }
+
+        // ----------------------------------------------------
+        // 3. Copy Profile URL
+        // ----------------------------------------------------
+        function copyProfileLink() {
+            const currentUrl = window.location.href;
+            
+            // Fallback for copy text iframe restrictions
+            const dummy = document.createElement('input');
+            document.body.appendChild(dummy);
+            dummy.value = currentUrl;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            showToast("Profile URL copied to clipboard!");
+        }
+
+        // ----------------------------------------------------
+        // 4. NFC Modal Simulator
+        // ----------------------------------------------------
+        function openNfcModal() {
+            document.getElementById('cardUrlDisplay').textContent = window.location.href;
+            document.getElementById('nfcModal').classList.remove('hidden');
+        }
+        function closeNfcModal() {
+            document.getElementById('nfcModal').classList.add('hidden');
+        }
+
+        // ----------------------------------------------------
+        // 5. Dynamic Theme Selector
+        // ----------------------------------------------------
+        function setTheme(themeName) {
+            const body = document.getElementById('bodyTheme');
+            body.className = body.className.replace(/bg-mesh-\w+/g, '');
+            body.classList.add(`bg-mesh-${themeName}`);
+            showToast(`Theme changed to ${themeName.toUpperCase()}`);
+        }
+
+        // ----------------------------------------------------
+        // 6. Interactive 3D Card Tilt Effect & Click Ripple
+        // ----------------------------------------------------
+        const cards = document.querySelectorAll('.tilt-card');
+        
+        cards.forEach(card => {
+            // Mouse move 3D Effect
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((y - centerY) / centerY) * -7;
+                const rotateY = ((x - centerX) / centerX) * 7;
+                
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-2px)`;
+            });
+
+            // Reset tilt on leave
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+            });
+
+            // Ripple effect on click
+            card.addEventListener('click', function (e) {
+                const circle = document.createElement('span');
+                const diameter = Math.max(card.clientWidth, card.clientHeight);
+                const radius = diameter / 2;
+                
+                const rect = card.getBoundingClientRect();
+                circle.style.width = circle.style.height = `${diameter}px`;
+                circle.style.left = `${e.clientX - rect.left - radius}px`;
+                circle.style.top = `${e.clientY - rect.top - radius}px`;
+                circle.classList.add('ripple');
+                
+                const existingRipple = card.querySelector('.ripple');
+                if (existingRipple) {
+                    existingRipple.remove();
+                }
+                
+                card.appendChild(circle);
+            });
+        });
+
+        // ----------------------------------------------------
+        // 7. Lightweight Canvas Particle System
+        // ----------------------------------------------------
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let particlesEnabled = true;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.opacity = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const particleCount = Math.min(Math.floor(window.innerWidth / 15), 40);
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+        initParticles();
+
+        function animateParticles() {
+            if (particlesEnabled) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        function toggleParticles() {
+            particlesEnabled = !particlesEnabled;
+            const icon = document.getElementById('sparkleIcon');
+            if (particlesEnabled) {
+                icon.className = "fa-solid fa-sparkles text-yellow-400";
+                showToast("Particles Enabled");
+            } else {
+                icon.className = "fa-regular fa-sparkles text-gray-400";
+                showToast("Particles Disabled");
+            }
+        }
+
+        // ----------------------------------------------------
+        // 8. Fun Confetti Trigger on Avatar Tap
+        // ----------------------------------------------------
+        function triggerConfetti() {
+            showToast("✨ Creator Profile Active!");
+            for(let i=0; i<15; i++) {
+                createSparkle();
+            }
+        }
+
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.innerHTML = '✨';
+            sparkle.className = 'fixed pointer-events-none z-50 text-sm animate-bounce';
+            sparkle.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 150) + 'px';
+            sparkle.style.top = (160 + (Math.random() - 0.5) * 100) + 'px';
+            document.body.appendChild(sparkle);
+            setTimeout(() => sparkle.remove(), 1000);
+        }
+    </script>
+</body>
+</html>
